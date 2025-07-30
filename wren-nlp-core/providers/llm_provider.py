@@ -75,7 +75,7 @@ class SimpleLLMGenerator:
                 messages.append({"role": "system", "content": self.system_prompt})
             messages.append({"role": "user", "content": prompt})
             
-            response = await openai.ChatCompletion.acreate(
+            response = await openai.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 **self.generation_kwargs,
@@ -86,7 +86,7 @@ class SimpleLLMGenerator:
                 "replies": [response.choices[0].message.content],
                 "meta": {
                     "model": self.model,
-                    "usage": response.usage._asdict() if hasattr(response, 'usage') else {}
+                    "usage": dict(response.usage) if hasattr(response, 'usage') else {}
                 }
             }
             

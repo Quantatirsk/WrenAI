@@ -5,7 +5,10 @@
 import logging
 from typing import Dict, List, Optional, Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from nlp_core import WrenNLPCore, QueryRequest, QueryResponse
@@ -22,6 +25,9 @@ app = FastAPI(
     description="自然语言转SQL核心引擎API",
     version="1.0.0"
 )
+
+# 挂载静态文件目录
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 全局变量存储核心引擎实例
 nlp_core: Optional[WrenNLPCore] = None
@@ -73,17 +79,32 @@ async def startup_event():
         # 从环境变量或配置文件加载配置
         config = Config.from_env()
         
-        # 创建LLM提供者
-        llm_provider = SimpleLLMProvider(
-            model=config.llm.model,
-            api_key=config.llm.api_key,
-            base_url=config.llm.base_url,
-            model_kwargs={
-                "temperature": config.llm.temperature,
-                "max_tokens": config.llm.max_tokens,
-            },
-            context_window_size=config.llm.context_window_size,
-        )
+        # 根据配置创建相应的LLM提供者
+        if config.llm.provider.lower() == "glm":
+            # 使用智谱GLM模型
+            from providers.glm_provider import GLMProvider
+            llm_provider = GLMProvider(
+                model=config.llm.model,
+                api_key=config.llm.api_key,
+                base_url=config.llm.base_url or "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+                model_kwargs={
+                    "temperature": config.llm.temperature,
+                    "max_tokens": config.llm.max_tokens,
+                },
+                context_window_size=config.llm.context_window_size,
+            )
+        else:
+            # 默认使用OpenAI模型
+            llm_provider = SimpleLLMProvider(
+                model=config.llm.model,
+                api_key=config.llm.api_key,
+                base_url=config.llm.base_url,
+                model_kwargs={
+                    "temperature": config.llm.temperature,
+                    "max_tokens": config.llm.max_tokens,
+                },
+                context_window_size=config.llm.context_window_size,
+            )
         
         # 创建核心引擎
         nlp_core = WrenNLPCore(
@@ -98,14 +119,12 @@ async def startup_event():
         raise
 
 
-@app.get("/")
-async def root():
-    """根路径"""
-    return {
-        "message": "WrenAI自然语言转SQL核心引擎",
-        "version": "1.0.0",
-        "status": "running"
-    }
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    """返回前端界面"""
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
 
 
 @app.get("/health")

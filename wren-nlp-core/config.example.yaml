@@ -3,14 +3,21 @@
 
 # LLM配置
 llm:
-  # 模型名称，支持 OpenAI, Anthropic, 本地模型等
-  model: "gpt-3.5-turbo"  # 或 "gpt-4", "claude-3-sonnet", "qwen:7b" 等
+  # 模型类型：openai, glm
+  provider: "openai"
+  
+  # 模型名称
+  # OpenAI: "gpt-3.5-turbo", "gpt-4" 等
+  # GLM: "glm-4", "glm-3-turbo" 等
+  model: "gpt-3.5-turbo"
   
   # API密钥
   api_key: "your-api-key-here"
   
   # API基础URL（可选，用于自定义端点）
-  base_url: null  # 例如: "https://api.openai.com/v1"
+  # OpenAI: "https://api.openai.com/v1"
+  # GLM: "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+  base_url: null
   
   # 生成参数
   temperature: 0.1  # 生成温度，控制随机性

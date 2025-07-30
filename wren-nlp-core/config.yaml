@@ -1,0 +1,38 @@
+# WrenAI NLP Core 配置
+# 根据你的环境修改以下配置
+
+# LLM配置
+llm:
+  # 模型类型：openai, glm
+  provider: "glm"
+  
+  # 模型名称
+  # OpenAI: "gpt-3.5-turbo", "gpt-4" 等
+  # GLM: "glm-4", "glm-3-turbo" 等
+  model: "glm-4.5"
+  
+  # API密钥 - 已设置实际API密钥
+  api_key: "3623aee5bd864513855af0fec9956c54.GMQ293gc9B7ck4aG"
+  
+  # API基础URL（一般不需要修改）
+  # 智谱GLM API地址
+  base_url: "https://open.bigmodel.cn/api/paas/v4/"
+  
+  # 生成参数
+  temperature: 0.1  # 生成温度，控制随机性
+  max_tokens: 1000  # 最大生成token数
+  context_window_size: 8192  # 上下文窗口大小
+
+# 核心引擎配置
+core:
+  # 是否启用意图分类
+  enable_intent_classification: true
+  
+  # 是否启用SQL生成推理
+  enable_sql_generation_reasoning: false
+  
+  # 最大历史对话数量
+  max_histories: 5
+  
+  # 日志级别
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR

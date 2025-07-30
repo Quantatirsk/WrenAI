@@ -11,6 +11,7 @@ from dataclasses import dataclass
 @dataclass
 class LLMConfig:
     """LLM配置"""
+    provider: str = "openai"  # openai 或 glm
     model: str = "gpt-3.5-turbo"
     api_key: Optional[str] = None
     base_url: Optional[str] = None
@@ -52,6 +53,7 @@ class Config:
     def from_env(cls) -> 'Config':
         """从环境变量创建配置"""
         llm_config = LLMConfig(
+            provider=os.getenv('WREN_LLM_PROVIDER', 'openai'),
             model=os.getenv('WREN_LLM_MODEL', 'gpt-3.5-turbo'),
             api_key=os.getenv('WREN_LLM_API_KEY'),
             base_url=os.getenv('WREN_LLM_BASE_URL'),

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WrenAI自然语言转SQL演示</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        textarea, input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            font-family: inherit;
+        }
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .result-area {
+            margin-top: 20px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .loading:after {
+            content: " ";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin: 0 10px;
+            border-radius: 50%;
+            border: 3px solid #3498db;
+            border-color: #3498db transparent #3498db transparent;
+            animation: loading 1.2s linear infinite;
+        }
+        @keyframes loading {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .header-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            margin: 0 5px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom: 2px solid #3498db;
+            font-weight: bold;
+        }
+        #intentResult, #errorMessage {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        #intentResult {
+            background-color: #e8f4fd;
+        }
+        #errorMessage {
+            background-color: #ffebee;
+            color: #c62828;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>WrenAI 自然语言转SQL演示</h1>
+    
+    <div class="header-tabs">
+        <div class="tab active" data-tab="sqlTab">SQL生成</div>
+        <div class="tab" data-tab="settingsTab">设置</div>
+    </div>
+
+    <div id="sqlTab" class="tab-content">
+        <div class="container">
+            <div class="left-panel">
+                <div class="card">
+                    <label for="userQuery">输入自然语言查询:</label>
+                    <textarea id="userQuery" placeholder="例如: 查询所有活跃用户的数量"></textarea>
+                    
+                    <label for="dbSchema">数据库模式 (DDL):</label>
+                    <textarea id="dbSchema">CREATE TABLE users (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100),
+    registration_date DATE,
+    is_active BOOLEAN
+);
+
+CREATE TABLE orders (
+    id INT PRIMARY KEY,
+    user_id INT,
+    order_date DATE,
+    amount DECIMAL(10,2),
+    status VARCHAR(20),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);</textarea>
+                    
+                    <button id="generateBtn">生成SQL</button>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="card result-area">
+                    <label>生成结果:</label>
+                    <div id="intentResult"></div>
+                    <pre id="sqlResult">SQL将在这里显示...</pre>
+                    <div id="errorMessage"></div>
+                    <div class="loading" id="loadingIndicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="settingsTab" class="tab-content" style="display:none">
+        <div class="card">
+            <h2>API设置</h2>
+            <label for="apiEndpoint">API地址:</label>
+            <input type="text" id="apiEndpoint" value="http://localhost:8000">
+            
+            <label for="enableIntentClassification">启用意图分类:</label>
+            <select id="enableIntentClassification">
+                <option value="true">是</option>
+                <option value="false">否</option>
+            </select>
+            
+            <button id="saveSettingsBtn">保存设置</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateBtn = document.getElementById('generateBtn');
+            const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+            const tabs = document.querySelectorAll('.tab');
+            
+            // 设置默认值
+            let apiEndpoint = localStorage.getItem('apiEndpoint') || 'http://localhost:8000';
+            let enableIntentClassification = localStorage.getItem('enableIntentClassification') !== 'false';
+            
+            document.getElementById('apiEndpoint').value = apiEndpoint;
+            document.getElementById('enableIntentClassification').value = enableIntentClassification.toString();
+            
+            // 标签切换
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.style.display = 'none';
+                    });
+                    
+                    document.getElementById(tabId).style.display = 'block';
+                });
+            });
+            
+            // 保存设置
+            saveSettingsBtn.addEventListener('click', function() {
+                apiEndpoint = document.getElementById('apiEndpoint').value;
+                enableIntentClassification = document.getElementById('enableIntentClassification').value === 'true';
+                
+                localStorage.setItem('apiEndpoint', apiEndpoint);
+                localStorage.setItem('enableIntentClassification', enableIntentClassification.toString());
+                
+                alert('设置已保存');
+            });
+            
+            // 生成SQL
+            generateBtn.addEventListener('click', async function() {
+                const userQuery = document.getElementById('userQuery').value;
+                const dbSchema = document.getElementById('dbSchema').value;
+                
+                if (!userQuery) {
+                    showError('请输入查询内容');
+                    return;
+                }
+                
+                if (!dbSchema) {
+                    showError('请输入数据库模式');
+                    return;
+                }
+                
+                showLoading(true);
+                clearResults();
+                
+                try {
+                    const response = await fetch(`${apiEndpoint}/query`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            query: userQuery,
+                            db_schemas: dbSchema.split(';').filter(s => s.trim()),
+                            enable_intent_classification: enableIntentClassification
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        if (result.query_type === 'TEXT_TO_SQL') {
+                            document.getElementById('sqlResult').textContent = result.sql;
+                            if (result.intent_reasoning) {
+                                document.getElementById('intentResult').textContent = `意图: ${result.query_type} - ${result.intent_reasoning}`;
+                                document.getElementById('intentResult').style.display = 'block';
+                            }
+                        } else {
+                            document.getElementById('intentResult').textContent = `意图: ${result.query_type}`;
+                            document.getElementById('intentResult').style.display = 'block';
+                            document.getElementById('sqlResult').textContent = result.meta.message || '无法生成SQL（非SQL查询）';
+                        }
+                    } else {
+                        showError(result.error || '生成失败');
+                    }
+                } catch (error) {
+                    showError(`请求失败: ${error.message}`);
+                } finally {
+                    showLoading(false);
+                }
+            });
+            
+            function showError(message) {
+                const errorElement = document.getElementById('errorMessage');
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            }
+            
+            function clearResults() {
+                document.getElementById('sqlResult').textContent = '';
+                document.getElementById('intentResult').textContent = '';
+                document.getElementById('intentResult').style.display = 'none';
+                document.getElementById('errorMessage').style.display = 'none';
+            }
+            
+            function showLoading(show) {
+                document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+            }
+        });
+    </script>
+</body>
+</html>

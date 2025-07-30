@@ -1,0 +1,30 @@
+# WrenAI NLP Core - 最小化依赖清单
+# 基于WrenAI核心逻辑提取的必需第三方库
+
+# 核心AI/ML框架
+fastapi>=0.100.0,<0.116.0
+uvicorn[standard]>=0.20.0,<0.31.0
+pydantic>=2.0.0,<3.0.0
+
+# LLM和AI相关
+openai>=1.40.0,<2.0.0
+litellm>=1.70.0,<2.0.0
+tiktoken>=0.8.0,<1.0.0
+
+# 数据处理
+orjson>=3.10.0,<4.0.0
+sqlglot[rs]>=25.18.0,<26.0.0
+sqlparse>=0.5.0,<1.0.0
+
+# 配置和工具
+pyyaml>=6.0.0,<7.0.0
+python-dotenv>=1.0.0,<2.0.0
+
+# 日志和监控（可选）
+logging>=0.4.9.6
+
+# 开发和测试（可选）
+pytest>=7.0.0,<8.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+black>=23.0.0,<24.0.0
+isort>=5.0.0,<6.0.0
